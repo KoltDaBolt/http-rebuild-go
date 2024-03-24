@@ -142,8 +142,26 @@ func handleRequest(method string, path string, headers map[string]string, body s
 			response := CREATED + CRLF + CRLF
 			return response
 		}
+	}else if(method == "PUT"){
+		file := filepath.Join(serverFilePath, path)
+
+		_, err := os.Stat(file)
+		if err != nil{
+			content := "Not Found. The file in the path you are trying to modify does not exist."
+			response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+
+		if err := ioutil.WriteFile(file, []byte(body), 0666); err != nil{
+			content := "ERROR: Could not update file contents."
+			response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+
+		response := OK + CRLF + CRLF
+		return response
 	}else{
-		content := "ERROR: Method not implemented. Implemented methods include GET and POST."
+		content := "ERROR: Method not implemented. Implemented methods include GET, POST, and PUT."
 		response := NOT_IMPLEMENTED + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
 		return response
 	}
