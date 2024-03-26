@@ -160,8 +160,27 @@ func handleRequest(method string, path string, headers map[string]string, body s
 
 		response := OK + CRLF + CRLF
 		return response
+	}else if(method == "DELETE"){
+		file := filepath.Join(serverFilePath, path)
+
+		_, err := os.Stat(file)
+		if err != nil{
+			content := "Not Found. The file in the path you are trying to delete does not exist."
+			response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+
+		err = os.Remove(file)
+		if err != nil{
+			content := "ERROR: Could not delete file."
+			response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+
+		response := OK + CRLF + CRLF
+		return response
 	}else{
-		content := "ERROR: Method not implemented. Implemented methods include GET, POST, and PUT."
+		content := "ERROR: Method not implemented. Implemented methods include GET, POST, PUT, and DELETE."
 		response := NOT_IMPLEMENTED + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
 		return response
 	}
