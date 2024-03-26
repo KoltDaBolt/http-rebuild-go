@@ -91,9 +91,8 @@ func getFileExtensionFromContentType(contentType string) string{
 	}
 }
 
-func handleRequest(method string, path string, headers map[string]string, body string) string{
-	if(method == "GET"){
-		file := filepath.Join(serverFilePath, path)
+func handleGETMethod(path string) string{
+	file := filepath.Join(serverFilePath, path)
 		content, err := ioutil.ReadFile(file)
 		if err == nil {
 			if(strings.HasSuffix(path, ".txt")){
@@ -112,77 +111,95 @@ func handleRequest(method string, path string, headers map[string]string, body s
 			response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
 			return response
 		}
-	}else if(method == "POST"){
-		contentType, exists := headers["content-type"]
-		if !exists{
-			content := "Please provide a Content-Type header of either text/plain or application/json."
-			response := BAD_REQUEST + CRLF + ContentTypePlainText + CRLF +  "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-			return response
-		}else{
-			fileExtention := getFileExtensionFromContentType(contentType)
-			if fileExtention == ""{
-				content := "Please provide a Content-Type header of either text/plain or application/json."
-				response := BAD_REQUEST + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-				return response
-			}
+}
 
-			dir := filepath.Dir(filepath.Join(serverFilePath, path))
-			if err := os.MkdirAll(dir, 0755); err != nil{
-				content := "ERROR: Could not create file."
-				response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-				return response
-			}
-
-			file := filepath.Join(serverFilePath, path + fileExtention)
-			if err := ioutil.WriteFile(file, []byte(body), 0666); err != nil{
-				content := "ERROR: Could not create or write to file."
-				response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-				return response
-			}
-			response := CREATED + CRLF + CRLF
-			return response
-		}
-	}else if(method == "PUT"){
-		file := filepath.Join(serverFilePath, path)
-
-		_, err := os.Stat(file)
-		if err != nil{
-			content := "Not Found. The file in the path you are trying to modify does not exist."
-			response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-			return response
-		}
-
-		if err := ioutil.WriteFile(file, []byte(body), 0666); err != nil{
-			content := "ERROR: Could not update file contents."
-			response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-			return response
-		}
-
-		response := OK + CRLF + CRLF
-		return response
-	}else if(method == "DELETE"){
-		file := filepath.Join(serverFilePath, path)
-
-		_, err := os.Stat(file)
-		if err != nil{
-			content := "Not Found. The file in the path you are trying to delete does not exist."
-			response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-			return response
-		}
-
-		err = os.Remove(file)
-		if err != nil{
-			content := "ERROR: Could not delete file."
-			response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
-			return response
-		}
-
-		response := OK + CRLF + CRLF
+func handlePOSTMethod(path string, headers map[string]string, body string) string{
+	contentType, exists := headers["content-type"]
+	if !exists{
+		content := "Please provide a Content-Type header of either text/plain or application/json."
+		response := BAD_REQUEST + CRLF + ContentTypePlainText + CRLF +  "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
 		return response
 	}else{
-		content := "ERROR: Method not implemented. Implemented methods include GET, POST, PUT, and DELETE."
-		response := NOT_IMPLEMENTED + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+		fileExtention := getFileExtensionFromContentType(contentType)
+		if fileExtention == ""{
+			content := "Please provide a Content-Type header of either text/plain or application/json."
+			response := BAD_REQUEST + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+
+		dir := filepath.Dir(filepath.Join(serverFilePath, path))
+		if err := os.MkdirAll(dir, 0755); err != nil{
+			content := "ERROR: Could not create file."
+			response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+
+		file := filepath.Join(serverFilePath, path + fileExtention)
+		if err := ioutil.WriteFile(file, []byte(body), 0666); err != nil{
+			content := "ERROR: Could not create or write to file."
+			response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
+		}
+		response := CREATED + CRLF + CRLF
 		return response
+	}
+}
+
+func handlePUTMethod(path string, body string) string{
+	file := filepath.Join(serverFilePath, path)
+
+	_, err := os.Stat(file)
+	if err != nil{
+		content := "Not Found. The file in the path you are trying to modify does not exist."
+		response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+		return response
+	}
+
+	if err := ioutil.WriteFile(file, []byte(body), 0666); err != nil{
+		content := "ERROR: Could not update file contents."
+		response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+		return response
+	}
+
+	response := OK + CRLF + CRLF
+	return response
+}
+
+func handleDELETEMethod(path string) string{
+	file := filepath.Join(serverFilePath, path)
+
+	_, err := os.Stat(file)
+	if err != nil{
+		content := "Not Found. The file in the path you are trying to delete does not exist."
+		response := NOT_FOUND + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+		return response
+	}
+
+	err = os.Remove(file)
+	if err != nil{
+		content := "ERROR: Could not delete file."
+		response := INTERNAL_SERVER_ERROR + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+		return response
+	}
+
+	response := OK + CRLF + CRLF
+	return response
+}
+
+func handleRequest(method string, path string, headers map[string]string, body string) string{
+	switch method{
+		case "GET":
+			return handleGETMethod(path)
+		case "POST":
+			return handlePOSTMethod(path, headers,body)
+		case "PUT":
+			return handlePUTMethod(path, body)
+		case "DELETE":
+			return handleDELETEMethod(path)
+		default:
+			content := "ERROR: Method not implemented. Implemented methods include GET, POST, PUT, and DELETE."
+			response := NOT_IMPLEMENTED + CRLF + ContentTypePlainText + CRLF + "Content-Length: " + fmt.Sprint(len(content)) + CRLF + CRLF + string(content)
+			return response
 	}
 }
 
